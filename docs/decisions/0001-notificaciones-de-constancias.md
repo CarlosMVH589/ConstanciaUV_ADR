@@ -29,6 +29,7 @@ Opción elegida: "Alternativa B: procesamiento asíncrono mediante eventos persi
 * Beneficio: el procesamiento y la recuperación de notificaciones tienen una responsabilidad separada del flujo de generación.
 * Costo: se debe mantener el almacenamiento de eventos o pendientes, el estado de procesamiento y la coordinación del componente que los consume.
 * Riesgo y compromiso: el procesamiento asíncrono puede retrasar la notificación y requiere gestionar reintentos, concurrencia y fallos. La unicidad local evita crear solicitudes duplicadas para una constancia, pero no garantiza por sí sola que el proveedor entregue el correo una sola vez.
+* Consecuencia a revisar ante cambios del proveedor: el componente de procesamiento debe adaptar la comunicación y la interpretación de errores; una clasificación incorrecta podría impedir reintentos necesarios o repetir solicitudes.
 
 ### Confirmation
 
@@ -38,7 +39,8 @@ En una implementación futura, se comprobaría mediante pruebas que:
 * cada constancia produzca como máximo un registro de notificación, incluso ante solicitudes repetidas o procesamiento concurrente;
 * los pendientes permanezcan almacenados tras fallos y se reintenten cuando el proveedor vuelva a estar disponible;
 * el componente de procesamiento no cree solicitudes duplicadas al recuperar o reintentar un evento;
-* una revisión de diseño y código confirme que el envío se realiza fuera del flujo de generación y que la persistencia del pendiente no depende de la respuesta del proveedor.
+* una revisión de diseño y código confirme que el envío se realiza fuera del flujo de generación y que la persistencia del pendiente no depende de la respuesta del proveedor;
+* pruebas de contrato con las respuestas de error actuales del proveedor confirmen su correcta traducción a resultados de envío y políticas de reintento, verificando que los pendientes se conserven y que los reintentos no creen solicitudes duplicadas.
 
 Estas son comprobaciones propuestas; no se afirma que se hayan ejecutado.
 
@@ -69,3 +71,10 @@ Después de almacenar la constancia, la aplicación registra un pendiente persis
 ## More Information
 
 Se registra la revisión de esta propuesta solicitada para la Parte 4. La revisión está pendiente y no implica aprobación institucional; el estado permanece `proposed`.
+
+### Revisión 1. Cambio en el proveedor de notificaciones
+
+* Cambio recibido: el proveedor externo modificó su interfaz de comunicación y la forma en que reporta los errores de envío.
+* Impacto sobre la alternativa seleccionada: el componente independiente que procesa los eventos pendientes y se comunica con el proveedor deberá adaptarse a la nueva interfaz y traducir sus errores a resultados y políticas de reintento. La generación de constancias y el registro persistente de pendientes no necesitan cambiar, siempre que los detalles específicos del proveedor permanezcan encapsulados en esa integración.
+* Vigencia de la decisión: se mantiene la propuesta de la alternativa B. El cambio modifica la integración, pero no elimina el beneficio de aislar la generación de constancias del envío ni la necesidad de conservar pendientes. La decisión original sigue siendo justificable; la nueva información no requiere seleccionar automáticamente otra alternativa. Se deberá reevaluar si la nueva interfaz impide sostener ese aislamiento o el procesamiento recuperable.
+* Consecuencia y comprobación actualizadas: se reconoce el riesgo de que interpretar incorrectamente los nuevos errores cause reintentos omitidos o solicitudes repetidas. Antes de implementar o actualizar la integración, se propone añadir o adaptar pruebas de contrato que cubran las respuestas de error nuevas, validen su clasificación para reintento y comprueben que el pendiente se conserva y que el control local de duplicados sigue funcionando. Estas pruebas no se han ejecutado.
